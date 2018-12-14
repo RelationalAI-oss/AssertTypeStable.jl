@@ -38,6 +38,9 @@ function code_assertstable(@nospecialize(f), @nospecialize(t); debuginfo::Symbol
     for (src, rettype) in code_typed(f, t)
         stability = assert_type_type_checker(rettype)
         if stability == unstable
+            typestring = join(["::$_t" for _t in t.parameters], ", ")
+            @warn "Type instability encountered in $f($typestring). Printing `@code_warntype $f($typestring)`:"
+            code_warntype(f,t)
             throw(AssertionError("type-instability: $rettype"))
         elseif stability == expected_union
             @warn "Encountered expected small-union type: $rettype"
