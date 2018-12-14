@@ -3,7 +3,7 @@ module AssertTypeStable
 using InteractiveUtils
 using Cthulhu
 
-export @assert_typestable, @test_typestable
+export @assert_typestable, @istypestable
 
 macro assert_typestable(ex0...)
     InteractiveUtils.gen_call_with_extracted_types_and_kwargs(__module__, :assert_typestable, ex0)
@@ -16,7 +16,7 @@ function assert_typestable(@nospecialize(F), @nospecialize(TT); kwargs...)
     methods = code_typed(F, TT; kwargs...)
     if isempty(methods)
         println("$(string(Callsite(-1 ,F, TT, Any))) has no methods")
-        return
+    return
     end
     CI, rt = first(methods)
     callsites = Cthulhu.find_callsites(CI, TT; kwargs...)
@@ -38,13 +38,15 @@ end
 function code_assertstable(@nospecialize(f), @nospecialize(t); debuginfo::Symbol=:default)
     for (src, rettype) in code_typed(f, t)
         stability = assert_type_type_checker(rettype)
+        make_typestring(t) = join(["::$_t" for _t in t.parameters], ", ")
         if stability == unstable
-            typestring = join(["::$_t" for _t in t.parameters], ", ")
+            typestring = make_typestring(t)
             @warn "Type instability encountered in $f($typestring). Printing `@code_warntype $f($typestring)`:"
             code_warntype(f,t)
             throw(AssertionError("type-instability: $rettype"))
         elseif stability == expected_union
-            @warn "Encountered expected small-union type: $rettype"
+            typestring = make_typestring(t)
+            @warn "Encountered expected small-union type in $f($typestring): $rettype"
         end
     end
     nothing
@@ -62,14 +64,16 @@ function assert_type_type_checker(@nospecialize(ty))
     end
 end
 
-macro test_typestable(ex0...)
+macro istypestable(ex0...)
     esc(quote
-        out = try
+        try
             @assert_typestable $(ex0...)
         catch e
-            e
+            if e isa AssertionException
+                return false
+            end
         end
-        @test out == nothing
+        return true
     end)
 end
 
