@@ -1,6 +1,13 @@
 module AssertTypeStable
 
+using InteractiveUtils
 using Cthulhu
+
+export @assert_stable
+
+macro assert_stable(ex0...)
+    InteractiveUtils.gen_call_with_extracted_types_and_kwargs(__module__, :assert_stable, ex0)
+end
 
 function assert_stable(@nospecialize(F), @nospecialize(TT); kwargs...)
     # Check this method

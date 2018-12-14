@@ -4,8 +4,8 @@ using Test
 
 f(x) = Var(x)
 
-@test_throws AssertionError AssertTypeStable.assert_stable(f, (Int,))
+@test_throws AssertionError @assert_stable f(5)
 
 f(x,y) = x+y
 
-AssertTypeStable.assert_stable(f, (Int,Int))
+@test (@assert_stable f(1,2)) == nothing
