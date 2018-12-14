@@ -10,10 +10,7 @@ macro assert_stable(ex0...)
 end
 
 function assert_stable(@nospecialize(F), @nospecialize(TT); kwargs...)
-    # Check this method
-    code_assertstable(F, TT)
-
-    # ============ Recurse into its children ================
+    # ============ Recurse into its children FIRST (so we get a bottom-up walk?) ================
 
     # ----- Copied from Cthulhu ---------
     methods = code_typed(F, TT; kwargs...)
@@ -29,6 +26,10 @@ function assert_stable(@nospecialize(F), @nospecialize(TT); kwargs...)
     for callsite in callsites
         assert_stable(callsite.f, callsite.tt; kwargs...)
     end
+
+    # ============ Then check this method. ==========================
+    code_assertstable(F, TT)
+
 end
 
 @enum TypeStability stable=1 expected_union=2 unstable=3
