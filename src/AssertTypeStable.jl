@@ -3,13 +3,13 @@ module AssertTypeStable
 using InteractiveUtils
 using Cthulhu
 
-export @assert_stable
+export @assert_typestable, @test_typestable
 
-macro assert_stable(ex0...)
-    InteractiveUtils.gen_call_with_extracted_types_and_kwargs(__module__, :assert_stable, ex0)
+macro assert_typestable(ex0...)
+    InteractiveUtils.gen_call_with_extracted_types_and_kwargs(__module__, :assert_typestable, ex0)
 end
 
-function assert_stable(@nospecialize(F), @nospecialize(TT); kwargs...)
+function assert_typestable(@nospecialize(F), @nospecialize(TT); kwargs...)
     # ============ Recurse into its children FIRST (so we get a bottom-up walk?) ================
 
     # ----- Copied from Cthulhu ---------
@@ -24,7 +24,7 @@ function assert_stable(@nospecialize(F), @nospecialize(TT); kwargs...)
 
     # Recurse
     for callsite in callsites
-        assert_stable(callsite.f, callsite.tt; kwargs...)
+        assert_typestable(callsite.f, callsite.tt; kwargs...)
     end
 
     # ============ Then check this method. ==========================
@@ -62,5 +62,15 @@ function assert_type_type_checker(@nospecialize(ty))
     end
 end
 
+macro test_typestable(ex0...)
+    esc(quote
+        out = try
+            @assert_typestable $(ex0...)
+        catch e
+            e
+        end
+        @test out == nothing
+    end)
+end
 
 end

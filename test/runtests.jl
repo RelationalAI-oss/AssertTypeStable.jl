@@ -2,10 +2,21 @@ using AssertTypeStable
 
 using Test
 
-f(x) = Val(x)
 
-@test_throws AssertionError @assert_stable f(5)
+@testset "@assert_typestable" begin
+    @testset "basic tests" begin
+        f(x) = Val(x)
+        @test_throws AssertionError @assert_typestable f(5)
 
-f(x,y) = x+y
+        f(x,y) = x+y
+        @test (@assert_typestable f(1,2)) == nothing
+    end
+end
 
-@test (@assert_stable f(1,2)) == nothing
+@testset "@test_typestable" begin
+    f(x,y) = x+y
+    @test_typestable f(1,2)
+
+    f(x) = Val(x)
+    @test_broken @test_typestable f(3)
+end
