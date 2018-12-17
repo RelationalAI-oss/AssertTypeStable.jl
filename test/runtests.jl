@@ -28,4 +28,11 @@ end
     @test @istypestable(f(3)) == false
 end
 
+@testset "Recursive functions" begin
+    recursive_factorial(x) = x * (x>1 ? recursive_factorial(x-1) : 1)
+    @assert recursive_factorial(10) == factorial(10)
+
+    @test AssertTypeStable.@istypestable recursive_factorial(3)
+end
+
 end

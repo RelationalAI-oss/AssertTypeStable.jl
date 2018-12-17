@@ -9,11 +9,19 @@ macro assert_typestable(ex0...)
     InteractiveUtils.gen_call_with_extracted_types_and_kwargs(__module__, :assert_typestable, ex0)
 end
 
-function assert_typestable(@nospecialize(F), @nospecialize(TT); kwargs...)
+function assert_typestable(@nospecialize(F), @nospecialize(TT); seen_cache=nothing, kwargs...)
+    if seen_cache isa Nothing
+        seen_cache = Dict{Tuple{Function,Type}, Array{Any}}()
+    end
     # ============ Recurse into its children FIRST (so we get a bottom-up walk?) ================
 
+    if (F,TT) in keys(seen_cache)
+        methods = seen_cache[(F,TT)]
+    else
+        methods = code_typed(F, TT; kwargs...)
+        seen_cache[(F,TT)] = methods
+    end
     # ----- Copied from Cthulhu ---------
-    methods = code_typed(F, TT; kwargs...)
     if isempty(methods)
         println("$(string(Callsite(-1 ,F, TT, Any))) has no methods")
     return
@@ -24,7 +32,7 @@ function assert_typestable(@nospecialize(F), @nospecialize(TT); kwargs...)
 
     # Recurse
     for callsite in callsites
-        assert_typestable(callsite.f, callsite.tt; kwargs...)
+        assert_typestable(callsite.f, callsite.tt; seen_cache=seen_cache, kwargs...)
     end
 
     # ============ Then check this method. ==========================
