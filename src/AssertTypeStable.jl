@@ -69,7 +69,7 @@ macro istypestable(ex0...)
         try
             @assert_typestable $(ex0...)
         catch e
-            if e isa AssertionException
+            if e isa AssertionError
                 return false
             end
         end

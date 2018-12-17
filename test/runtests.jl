@@ -15,7 +15,7 @@ using Test
 
         # "expected" small union "instability":
         u(x) = x > 0 ? Int(round(x)) : float(x)
-        @test_broken @assert_typestable u(-3.5)
+        @test_broken (@assert_typestable u(-3.5) == nothing)
     end
 end
 
