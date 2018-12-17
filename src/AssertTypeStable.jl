@@ -67,7 +67,7 @@ end
 macro istypestable(ex0...)
     esc(quote
         try
-            @assert_typestable $(ex0...)
+            AssertTypeStable.@assert_typestable $(ex0...)
         catch e
             if e isa AssertionError
                 return false
