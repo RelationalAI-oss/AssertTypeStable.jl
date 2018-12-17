@@ -2,6 +2,7 @@ using AssertTypeStable
 
 using Test
 
+@testset "Outer" begin
 
 @testset "@assert_typestable" begin
     @testset "basic tests" begin
@@ -25,4 +26,6 @@ end
 
     f(x) = Val(x)
     @test @istypestable(f(3)) == false
+end
+
 end
