@@ -35,4 +35,15 @@ end
     @test AssertTypeStable.@istypestable recursive_factorial(3)
 end
 
+@testset "No methods matching" begin
+    f(x::Integer, y::Integer) = true
+    f(x::Int64, y::Any) = false
+
+    # Calling f(1,2) is ambiguous.
+    @assert (try f(1,2) catch e; e end) isa MethodError
+
+    # So it won't have _any_ methods in @code_typed.
+    @test_logs (:warn, r".*no methods.*") AssertTypeStable.@assert_typestable f(1,2)
+end
+
 end
