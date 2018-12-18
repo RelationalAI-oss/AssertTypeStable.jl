@@ -9,30 +9,30 @@ macro assert_typestable(ex0...)
     InteractiveUtils.gen_call_with_extracted_types_and_kwargs(__module__, :assert_typestable, ex0)
 end
 
-function assert_typestable(@nospecialize(F), @nospecialize(TT); seen_cache=nothing, kwargs...)
-    if seen_cache isa Nothing
-        seen_cache = Dict{Tuple{Function,Type}, Array{Any}}()
-    end
+function assert_typestable(@nospecialize(F), @nospecialize(TT); seen_methods=Set{Tuple{Function,Type}}(), kwargs...)
     # ============ Recurse into its children FIRST (so we get a bottom-up walk?) ================
 
-    if (F,TT) in keys(seen_cache)
-        methods = seen_cache[(F,TT)]
-    else
-        methods = code_typed(F, TT; kwargs...)
-        seen_cache[(F,TT)] = methods
+    # Prevent infinite-loops for recursive functions.
+    if (F,TT) in seen_methods
+        return
     end
+    push!(seen_methods, (F,TT))
+
+    # Get code for this method.
     # ----- Copied from Cthulhu ---------
+    methods = code_typed(F, TT; kwargs...)
     if isempty(methods)
-        println("$(string(Callsite(-1 ,F, TT, Any))) has no methods")
-    return
+        methodstr = _print_method_to_string(F, TT)
+        @warn "$methodstr has no methods -- call will fail!"
+        return
     end
     CI, rt = first(methods)
     callsites = Cthulhu.find_callsites(CI, TT; kwargs...)
-    # ----- /Copied from Cthulhu -------Symbol--
+    # ----- /Copied from Cthulhu ---------
 
     # Recurse
     for callsite in callsites
-        assert_typestable(callsite.f, callsite.tt; seen_cache=seen_cache, kwargs...)
+        assert_typestable(callsite.f, callsite.tt; seen_methods=seen_methods, kwargs...)
     end
 
     # ============ Then check this method. ==========================
@@ -40,21 +40,22 @@ function assert_typestable(@nospecialize(F), @nospecialize(TT); seen_cache=nothi
 
 end
 
+_print_method_to_string(f, tt) = "$f($( join(["::$_t" for _t in tt.parameters], ", ") ))"
+
 @enum TypeStability stable=1 expected_union=2 unstable=3
 
 # Copied from code_warntype:
 function code_assertstable(@nospecialize(f), @nospecialize(t); debuginfo::Symbol=:default)
     for (src, rettype) in code_typed(f, t)
         stability = assert_type_type_checker(rettype)
-        make_typestring(t) = join(["::$_t" for _t in t.parameters], ", ")
         if stability == unstable
-            typestring = make_typestring(t)
-            @warn "Type instability encountered in $f($typestring). Printing `@code_warntype $f($typestring)`:"
+            methodstr = _print_method_to_string(f, t)
+            @warn "Type instability encountered in $methodstr. Printing `@code_warntype $methodstr`:"
             code_warntype(f,t)
             throw(AssertionError("type-instability: $rettype"))
         elseif stability == expected_union
-            typestring = make_typestring(t)
-            @warn "Encountered expected small-union type in $f($typestring): $rettype"
+            methodstr = _print_method_to_string(f, t)
+            @warn "Encountered expected small-union type in $methodstr: $rettype"
         end
     end
     nothing
